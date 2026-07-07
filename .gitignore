@@ -1,0 +1,13 @@
+# Ambiente Virtual (uv / virtualenv)
+.venv/
+__pycache__/
+*.pyc
+
+# Dados Brutos e Processados (Gerenciados estritamente pelo DVC)
+data/raw/
+data/interim/
+data/processed/
+
+# Configurações locais e credenciais sensíveis
+.env
+.ipynb_checkpoints/
