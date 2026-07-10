@@ -1,21 +1,21 @@
 """Módulo de Engenharia de Recursos (Feature Engineering).
 
-Este módulo implementa o mapeanto denso de IDs para Embeddings e a 
+Este módulo implementa o mapeanto denso de IDs para Embeddings e a
 criação do target adaptativo baseado em implicit feedback para o PyTorch.
 """
 
 import pandas as pd
 
+
 def create_dense_mappings(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
     """Cria mapeamentos sequenciais densos para os IDs de visitantes e itens.
-    
+
     Args:
         df(pd.DataFrame): DataFrame com os dados filtrados do estágio anterior.
 
     Returns:
         tuple: DataFrame atualizado, dicionário de usuários e dicionário de itens.
     """
-
     # Gera mapeamentos de 0 até N-1 para evitar eparsidade no PyTorch
     user_mapping = {uid: idx for idx, uid in enumerate(df["visitorid"].unique())}
     item_mapping = {iid: idx for idx, iid in enumerate(df["itemid"].unique())}
@@ -26,16 +26,16 @@ def create_dense_mappings(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
 
     return df_mapped, user_mapping, item_mapping
 
+
 def compute_implicit_feedback(df: pd.DataFrame) -> pd.DataFrame:
     """Calcula o target adaptativo ponderado com base nas interações do usuário.
-    
+
     Args:
         df (pd.DataFrame): DataFrame com os IDs mapeados.
 
     Returns:
         pd.DataFrame: DataFrame com a coluna 'target' calculada.
     """
-
     # Pesos definidos no plano de ação para mitigar o desbalanceamento critico
     weight_map = {"view": 1.0, "addtocart": 3.0, "transaction": 5.0}
 
@@ -52,6 +52,7 @@ def compute_implicit_feedback(df: pd.DataFrame) -> pd.DataFrame:
     # Renomeia para 'target' conforme o padrão exigido
     df_grouped = df_grouped.rename(columns={"interaction_weight": "target"})
     return df_grouped
+
 
 def main() -> None:
     """Função principal para executar o estágio de feature engineering."""

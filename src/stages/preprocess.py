@@ -8,16 +8,17 @@ from abc import ABC, abstractmethod
 import pathlib
 import pandas as pd
 
+
 class PreprocessingStrategy(ABC):
     """Classe abstrata base para as estratégias de filtragem de dados."""
 
     @abstractmethod
-    def apply(self, df:pd.DataFrame) -> pd.DataFrame:
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         """Aplica o filtro específico no DataFrame.
-        
+
         Args:
             df (pd.DataFrame): DataFrame original do RetailRocket.
-        
+
         Returns:
             pd.DataFrame: DataFrame filtrado.
         """
@@ -27,9 +28,10 @@ class PreprocessingStrategy(ABC):
 class FilterGhostUsersStrategy(PreprocessingStrategy):
     """Remove usuários fantasmas com histórico menor que o limiar determinado."""
 
-    def __init__(self, min_interactions:int = 3) -> None:
+    def __init__(self, min_interactions: int = 3) -> None:
+        """Inicializa a estratégia com o limite mínimo de interações."""
         self.min_interactions = min_interactions
-    
+
     def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         """Filtra usuários baseado na volumetria mínima de interações."""
         user_counts = df["visitorid"].value_counts()
@@ -40,7 +42,8 @@ class FilterGhostUsersStrategy(PreprocessingStrategy):
 class FilterLongTailItemsStrategy(PreprocessingStrategy):
     """Remove produtos com baixíssima frequência (cauda longa)."""
 
-    def __init__(self, min_appearances:int = 5) -> None:
+    def __init__(self, min_appearances: int = 5) -> None:
+        """Inicializa a estratégia com o limite mínimo de aparições."""
         self.min_appearances = min_appearances
 
     def apply(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -54,19 +57,21 @@ class DataPreprocessor:
     """Contexto que gerencia e executa as estratégias de pré-processamento."""
 
     def __init__(self) -> None:
+        """Inicializa o contexto com uma lista vazia de estratégias."""
         self._strategies: list[PreprocessingStrategy] = []
 
     def add_strategy(self, strategy: PreprocessingStrategy) -> None:
         """Adiciona uma nova estratégia de limpeza ao pipeline."""
         self._strategies.append(strategy)
-    
+
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
         """Executa todas as estratégias de pré-processamento no DataFrame."""
         df_processed = df.copy()
         for strategy in self._strategies:
             df_processed = strategy.apply(df_processed)
         return df_processed
-    
+
+
 def main() -> None:
     """Função principal para executar o estágio de pré-processamento."""
     print("====== INICIANDO ESTÁGIO: PREPROCESS ======")
@@ -96,5 +101,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-

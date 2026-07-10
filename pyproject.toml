@@ -1,0 +1,39 @@
+[project]
+name = "e-commerce-ml-ops"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mlflow>=2.15.0",
+    "pandas>=2.2.0,<3",
+    "protobuf>=3.20,<5.0",
+    "torch>=2.13.0",
+]
+
+[dependency-groups]
+dev = [
+    "dvc>=3.67.1",
+    "pre-commit>=4.6.0",
+    "ruff>=0.15.2",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["notebooks/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "ANN", "D"]
+ignore = ["D100", "D104"] 
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
