@@ -56,7 +56,6 @@ class ModelFactory(ABC):
 class SimpleModelFactory(ModelFactory):
     """Fábrica concreta para instanciar a nossa RecommendationMLP."""
 
-    @abstractmethod
     def create_model(self, num_users: int, num_items: int) -> nn.Module:
         """Instancia a MLP com dimensões fixas ou parametrizadas."""
         return RecommendationMLP(

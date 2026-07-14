@@ -11,3 +11,6 @@ data/processed/
 # Configurações locais e credenciais sensíveis
 .env
 .ipynb_checkpoints/
+
+# Ignorar arquivos do MLFlow
+mlruns/
