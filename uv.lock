@@ -973,6 +973,7 @@ dev = [
     { name = "dvc" },
     { name = "ipykernel" },
     { name = "pre-commit" },
+    { name = "python-dotenv" },
     { name = "ruff" },
 ]
 
@@ -989,6 +990,7 @@ dev = [
     { name = "dvc", specifier = ">=3.67.1" },
     { name = "ipykernel", specifier = ">=7.3.0" },
     { name = "pre-commit", specifier = ">=4.6.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "ruff", specifier = ">=0.15.2" },
 ]
 
