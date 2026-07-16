@@ -1,4 +1,7 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
@@ -14,6 +17,7 @@ class Settings(BaseSettings):
 
     MLFLOW_TRACKING_URI: str = "file:./mlruns"
     DATA_PATH: str = "./data/processed/features_ready.csv"
+    MODEL_PATH: Path = BASE_DIR / "models" / "recommender_model.pt"
 
 
 # Instância única para ser importada no restante do projeto
