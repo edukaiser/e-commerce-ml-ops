@@ -14,3 +14,7 @@ data/processed/
 
 # Ignorar arquivos do MLFlow
 mlruns/
+mlflow.db
+
+# Modelos
+models/

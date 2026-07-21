@@ -1,17 +1,18 @@
 """Módulo de Treinamento utilizando PyTorch.
 
-Este módulo implemente a arquiterura de uma rede neural MLP para recomendação,
+Este módulo implemente a arquitetura de uma rede neural MLP para recomendação,
 utilizando o padrão de projeto Factory para inicialização de componentes.
 """
 
 from abc import ABC, abstractmethod
 import pathlib
+import dvc.api
+import mlflow
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-import pandas as pd
-import mlflow
 
 
 class RecommendationMLP(nn.Module):
@@ -65,7 +66,23 @@ class SimpleModelFactory(ModelFactory):
 
 def main() -> None:
     """Função principal para executar a preparação do treinamento."""
+    # MLflow configurado para usar SQLite em vez de arquivo local
+    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+
     print("====== INICIANDO ESTÁGIO: TRAIN ======")
+
+    # 0. Carrega os parâmetros do params.yaml via DVC
+    config = dvc.api.params_show()
+    train_params = config.get("train", {})
+
+    epochs = train_params.get("epochs", 3)
+    batch_size = train_params.get("batch_size", 1024)
+    lr = train_params.get("lr", 0.001)
+
+    print(
+        f"Parâmetros carregados do DVC ->"
+        f"Épocas: {epochs}, Batch Size: {batch_size}, LR: {lr}"
+    )
 
     # 1. Carrega o output do estágio de feature engineering
     input_path = "data/processed/features_ready.csv"
@@ -77,7 +94,7 @@ def main() -> None:
     num_items = int(df["item_idx"].max() + 1)
     print(f"Detectados {num_users} usuários e {num_items} itens únicos.")
 
-    # 3. Usa o Design Pattern Factory para instanciar a rede reural
+    # 3. Usa o Design Pattern Factory para instanciar a rede neural
     factory = SimpleModelFactory()
     model = factory.create_model(num_users, num_items)
     print(f"Modelo instanciado via Factory com sucesso:\n{model}")
@@ -91,20 +108,19 @@ def main() -> None:
     y = torch.tensor(df["target"].values, dtype=torch.float32)
 
     dataset = TensorDataset(X_user, X_item, y)
-    dataloader = DataLoader(dataset, batch_size=1024, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # 5. Inicializa o monitoramento do experimento no MLflow
     mlflow.set_experiment("Recomendador_RetailRocket")
 
     with mlflow.start_run(run_name="treino_base_pytorch"):
-        epochs = 3
         mlflow.log_param("embedding_dim", 32)
         mlflow.log_param("epochs", epochs)
-        mlflow.log_param("batch_size", 1024)
-        mlflow.log_param("lr", 0.001)
+        mlflow.log_param("batch_size", batch_size)
+        mlflow.log_param("lr", lr)
 
         print("Iniciando loop de treinamento...")
         model.train()

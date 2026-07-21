@@ -1,0 +1,30 @@
+# Ambientes virtuais e dependências
+.venv/
+venv/
+ENV/
+
+# Controle de versão e IDEs
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Cache de compilação Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# DVC (evita copiar o cache local pesado para dentro da imagem)
+.dvc/cache/
+.dvc/state*
+
+# MLflow e artefatos gerados localmente
+mlruns/
+mlflow.db
+reports/
+models/
+
+# Arquivos de ambiente sensíveis
+.env

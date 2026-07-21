@@ -1,0 +1,23 @@
+services:
+  mlflow-server:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow_server
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/app/mlruns
+    volumes:
+      - ./:/app
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /app/mlruns
+
+  pipeline-runner:
+    build: .
+    container_name: dvc_pipeline_runner
+    depends_on:
+      - mlflow-server
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+    volumes:
+      - ./:/app
+    command: uv run dvc repro

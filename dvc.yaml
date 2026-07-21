@@ -1,0 +1,38 @@
+stages:
+  preprocess:
+    cmd: python src/stages/preprocess.py
+    deps:
+      - data/raw
+      - src/stages/preprocess.py
+    outs:
+      - data/interim/events_filtered.csv
+
+  feature_eng:
+    cmd: python src/stages/feature_eng.py
+    deps:
+      - data/interim/events_filtered.csv
+      - src/stages/feature_eng.py
+    outs:
+      - data/processed/features_ready.csv
+    
+  train:
+    cmd: python src/stages/train.py
+    deps:
+      - data/processed/features_ready.csv
+      - src/stages/train.py
+      - src/models/model.py
+    params:
+      - train.epochs
+      - train.batch_size
+      - train.lr
+    outs:
+      - models/recommender_model.pt
+
+  evaluate:
+    cmd: uv run python -m src.stages.evaluate
+    deps:
+      - models/recommender_model.pt
+      - data/processed/features_ready.csv
+      - src/stages/evaluate.py
+    outs:
+      - reports/metrics.json
