@@ -46,8 +46,8 @@ stages:
       size: 1759
     - path: src/stages/train.py
       hash: md5
-      md5: feef8548aeb76be331560d0a4cf9a1e3
-      size: 5773
+      md5: 99d7a80560001d83d0dc8da215f20af1
+      size: 5798
     params:
       params.yaml:
         train.batch_size: 2048
@@ -56,7 +56,7 @@ stages:
     outs:
     - path: models/recommender_model.pt
       hash: md5
-      md5: e2ccac2218f7975c2527afb05698f208
+      md5: 26ca2aebd3bc734cb789a106be4efc8d
       size: 30831577
   evaluate:
     cmd: uv run python -m src.stages.evaluate
@@ -67,7 +67,7 @@ stages:
       size: 11689630
     - path: models/recommender_model.pt
       hash: md5
-      md5: e2ccac2218f7975c2527afb05698f208
+      md5: 26ca2aebd3bc734cb789a106be4efc8d
       size: 30831577
     - path: src/stages/evaluate.py
       hash: md5
@@ -76,5 +76,5 @@ stages:
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: ae9ca7375ac2b83352af6512ecd9fba9
-      size: 36
+      md5: f4739acb9db99695f33a29821148bbbe
+      size: 35
