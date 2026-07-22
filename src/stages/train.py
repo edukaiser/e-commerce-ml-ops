@@ -5,14 +5,19 @@ utilizando o padrão de projeto Factory para inicialização de componentes.
 """
 
 from abc import ABC, abstractmethod
+import os
 import pathlib
 import dvc.api
+from dotenv import load_dotenv
 import mlflow
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
+
+# Carrega as variáveis do arquivo .env
+load_dotenv()
 
 
 class RecommendationMLP(nn.Module):
@@ -66,8 +71,10 @@ class SimpleModelFactory(ModelFactory):
 
 def main() -> None:
     """Função principal para executar a preparação do treinamento."""
-    # MLflow configurado para usar SQLite em vez de arquivo local
-    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+    # Configura o tracking URI dinamicamente do .env
+    # ou assume o container local do MLflow
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    mlflow.set_tracking_uri(tracking_uri)
 
     print("====== INICIANDO ESTÁGIO: TRAIN ======")
 
@@ -80,7 +87,7 @@ def main() -> None:
     lr = train_params.get("lr", 0.001)
 
     print(
-        f"Parâmetros carregados do DVC ->"
+        f"Parâmetros carregados do DVC -> "
         f"Épocas: {epochs}, Batch Size: {batch_size}, LR: {lr}"
     )
 
@@ -138,6 +145,7 @@ def main() -> None:
             total_epoch_loss = epoch_loss / len(dataset)
             print(f"Época [{epoch + 1}/{epochs}] - Perda (MSE): {total_epoch_loss:.4f}")
             mlflow.log_metric("mse_loss", total_epoch_loss, step=epoch)
+            mlflow.log_metric("mse", total_epoch_loss)
 
         # Salva os pesos finais do modelo treinado
         model_path = "models/recommender_model.pt"
