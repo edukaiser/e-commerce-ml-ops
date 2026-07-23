@@ -3,6 +3,9 @@
 __pycache__/
 *.pyc
 
+# Testes
+.pytest_cache/
+
 # Dados Brutos e Processados (Gerenciados estritamente pelo DVC)
 data/raw/
 data/interim/
