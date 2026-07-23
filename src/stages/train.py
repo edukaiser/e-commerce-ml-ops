@@ -1,12 +1,13 @@
 """Módulo de Treinamento utilizando PyTorch.
 
-Este módulo implemente a arquitetura de uma rede neural MLP para recomendação,
+Este módulo implementa a arquitetura de uma rede neural MLP para recomendação,
 utilizando o padrão de projeto Factory para inicialização de componentes.
 """
 
 from abc import ABC, abstractmethod
 import os
 import pathlib
+
 import dvc.api
 from dotenv import load_dotenv
 import mlflow
@@ -47,7 +48,8 @@ class RecommendationMLP(nn.Module):
 
         # Concatena os vetores do usuário e do item lado a lado
         x = torch.cat([user_vector, item_vector], dim=-1)
-        return self.fc_layers(x).squeeze(-1)
+        # Aplica sigmoid para retornar probabilidade entre 0 e 1
+        return torch.sigmoid(self.fc_layers(x).squeeze(-1))
 
 
 class ModelFactory(ABC):
@@ -117,7 +119,8 @@ def main() -> None:
     dataset = TensorDataset(X_user, X_item, y)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    criterion = nn.MSELoss()
+    # Alterado para BCELoss para lidar com a saída probabilística (0 a 1) da Sigmoid
+    criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # 5. Inicializa o monitoramento do experimento no MLflow
@@ -143,9 +146,9 @@ def main() -> None:
                 epoch_loss += loss.item() * batch_user.size(0)
 
             total_epoch_loss = epoch_loss / len(dataset)
-            print(f"Época [{epoch + 1}/{epochs}] - Perda (MSE): {total_epoch_loss:.4f}")
-            mlflow.log_metric("mse_loss", total_epoch_loss, step=epoch)
-            mlflow.log_metric("mse", total_epoch_loss)
+            print(f"Época [{epoch + 1}/{epochs}] - Perda (BCE): {total_epoch_loss:.4f}")
+            mlflow.log_metric("bce_loss", total_epoch_loss, step=epoch)
+            mlflow.log_metric("loss", total_epoch_loss)
 
         # Salva os pesos finais do modelo treinado
         model_path = "models/recommender_model.pt"
@@ -155,7 +158,7 @@ def main() -> None:
         mlflow.log_artifact(model_path)
         print("Modelo treinado e artefatos salvos com sucesso!")
 
-    print("====== ESTÁGIO TRAIN CONCLUÍDO ======\n")
+        print("====== ESTÁGIO TRAIN CONCLUÍDO ======\n")
 
 
 if __name__ == "__main__":

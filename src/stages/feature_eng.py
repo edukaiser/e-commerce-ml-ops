@@ -11,12 +11,12 @@ def create_dense_mappings(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
     """Cria mapeamentos sequenciais densos para os IDs de visitantes e itens.
 
     Args:
-        df(pd.DataFrame): DataFrame com os dados filtrados do estágio anterior.
+        df (pd.DataFrame): DataFrame com os dados filtrados do estágio anterior.
 
     Returns:
         tuple: DataFrame atualizado, dicionário de usuários e dicionário de itens.
     """
-    # Gera mapeamentos de 0 até N-1 para evitar eparsidade no PyTorch
+    # Gera mapeamentos de 0 até N-1 para evitar esparsidade no PyTorch
     user_mapping = {uid: idx for idx, uid in enumerate(df["visitorid"].unique())}
     item_mapping = {iid: idx for idx, iid in enumerate(df["itemid"].unique())}
 
@@ -30,13 +30,15 @@ def create_dense_mappings(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
 def compute_implicit_feedback(df: pd.DataFrame) -> pd.DataFrame:
     """Calcula o target adaptativo ponderado com base nas interações do usuário.
 
+    e normaliza os valores entre 0 e 1 (Min-Max Scaling) para uso com BCELoss.
+
     Args:
         df (pd.DataFrame): DataFrame com os IDs mapeados.
 
     Returns:
-        pd.DataFrame: DataFrame com a coluna 'target' calculada.
+        pd.DataFrame: DataFrame com a coluna 'target' calculada e normalizada.
     """
-    # Pesos definidos no plano de ação para mitigar o desbalanceamento critico
+    # Pesos definidos no plano de ação para mitigar o desbalanceamento crítico
     weight_map = {"view": 1.0, "addtocart": 3.0, "transaction": 5.0}
 
     df_weighted = df.copy()
@@ -49,8 +51,19 @@ def compute_implicit_feedback(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
 
-    # Renomeia para 'target' conforme o padrão exigido
-    df_grouped = df_grouped.rename(columns={"interaction_weight": "target"})
+    # Normalização Min-Max para garantir que o target fique estritamente entre 0.0 e 1.0
+    min_val = df_grouped["interaction_weight"].min()
+    max_val = df_grouped["interaction_weight"].max()
+
+    if max_val > min_val:
+        df_grouped["target"] = (df_grouped["interaction_weight"] - min_val) / (
+            max_val - min_val
+        )
+    else:
+        df_grouped["target"] = 0.0
+
+    # Remove a coluna temporária de peso bruto
+    df_grouped = df_grouped.drop(columns=["interaction_weight"])
     return df_grouped
 
 

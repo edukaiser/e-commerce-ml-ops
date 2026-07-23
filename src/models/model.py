@@ -1,5 +1,7 @@
-import torch.nn as nn
+"""Módulo contendo a arquitetura do modelo de recomendação baseado em PyTorch."""
+
 import torch
+import torch.nn as nn
 
 
 class RecommendationMLP(nn.Module):
@@ -36,9 +38,10 @@ class RecommendationMLP(nn.Module):
             item_idx (torch.Tensor): Tensor contendo os índices dos itens.
 
         Returns:
-            torch.Tensor: Scores previstos pela rede para as combinações fornecidas.
+            torch.Tensor: Scores de probabilidade previstos pela rede (0 a 1).
         """
         user_vector = self.user_embedding(user_idx)
         item_vector = self.item_embedding(item_idx)
         x = torch.cat([user_vector, item_vector], dim=-1)
-        return self.fc_layers(x).squeeze(-1)
+        # Aplicando a sigmoid para normalizar a saída entre 0 e 1
+        return torch.sigmoid(self.fc_layers(x).squeeze(-1))
