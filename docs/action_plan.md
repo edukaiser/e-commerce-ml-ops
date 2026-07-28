@@ -1,76 +1,493 @@
-# Plano de Ação & Arquitetura do Pipeline (Pós-EDA)
-**Projeto:** Motor de Recomendação para E-Commerce — RetailRocket  
-**Fase:** Transição de Análise Exploratória para Engenharia de Recursos
+# Action Plan - E-commerce ML Ops
+
+## 1. Objetivo
+
+Construir um ciclo completo de Machine Learning Ops para um sistema de recomendação de produtos, cobrindo desde a preparação dos dados até o deploy da inferência em API, com foco em reprodutibilidade, rastreabilidade e qualidade.
 
 ---
 
-## 🔍 1. Diagnósticos Reais do Dataset (Outputs do EDA)
+## 2. Escopo do Projeto
 
-Com base nas análises executadas no ambiente de experimentação (`notebooks/01_eda.ipynb`), mapeamos as seguintes características mandatórias do ecossistema de dados:
+O projeto deve evoluir para um fluxo completo de ML, incluindo:
 
-1. **Desbalanceamento Crítico do Funil:** As interações de visualização (`view`) dominam **96.67%** do banco de dados, enquanto intenções claras de compra (`transaction`) representam apenas **0.81%**. 
-2. **Alta Volatilidade de Usuários:** Existe um volume massivo de usuários "fantasmas" que possuem apenas 1 interação registrada no histórico, gerando ruído e esparsidade severa para representações vetoriais (*embeddings*).
-3. **Dinâmica de Navegação (Sessões Rápidas):** A análise temporal revelou uma mediana de **2.27 minutos** entre cliques consecutivos do mesmo usuário. Isso prova que as jornadas de compra são extremamente imediatas e sequenciais.
-
----
-
-## 🛠️ 2. Arquitetura Modular do Pipeline (`dvc.yaml`)
-
-Para garantir a reprodutibilidade exigida, o fluxo de dados será governado pelo DVC e dividido em **quatro estágios** independentes e idempotentes, isolados na pasta `src/stages/`:
-
-
-```
-
-[data/raw] ➔ (preprocess.py) ➔ [data/interim] ➔ (feature_eng.py) ➔ [data/processed] ➔ (train.py) ➔ [models] ➔ (evaluate.py)
-
-```
-
-### 📋 Detalhamento Técnico das Etapas
-
-### Estágio I: `preprocess` (`src/stages/preprocess.py`)
-* **Objetivo:** Filtragem de ruído, limpeza de dados órfãos e otimização de memória.
-* **Estratégia Pós-EDA:** 
-  * Aplicar um ponto de corte (*threshold*) para descartar usuários com histórico menor que 3 interações.
-  * Remover produtos com baixíssima frequência (cauda longa com menos de 5 aparições).
-  * Salvar o output limpo na pasta `data/interim/events_filtered.csv`.
-* **Garantia de Qualidade:** Funções com assinatura de tipos (*Type Hints*) de no máximo 20 linhas e tratamento de exceções para volumetria mínima ($\ge 10.000$ linhas).
-
-### Estágio II: `feature_eng` (`src/stages/feature_eng.py`)
-* **Objetivo:** Codificação de variáveis esparsas e estruturação do sinal para o PyTorch.
-* **Estratégia Pós-EDA:**
-  * **Mapeamento Denso de IDs:** Como as chaves originais do RetailRocket são esparsas, criaremos um dicionário indexador sequencial ($0, 1, 2...$) para alimentar as camadas de `torch.nn.Embedding` de usuários e itens.
-  * **Target Adaptativo (Implicit Feedback):** Para contornar o fato de as compras serem apenas 0.81% do dado, criaremos uma matriz de peso ponderado para as interações: `view` = 1.0, `addtocart` = 3.0 e `transaction` = 5.0.
-  * Separar os dados em treino, validação e teste usando uma janela de corte temporal (garantindo que o teste avalie apenas o futuro, evitando *data leakage*).
-  * Salvar matrizes processadas em `data/processed/`.
-
-### Estágio III: `train` (`src/stages/train.py`)
-* **Objetivo:** Inicialização, treinamento e parada antecipada da rede neural.
-* **Estratégia Pós-EDA:**
-  * Construir a arquitetura **Multi-Layer Perceptron (MLP)** via PyTorch, onde o tamanho das camadas de entrada será exatamente a cardinalidade de usuários e itens únicos mapeados no EDA.
-  * Implementação de rotinas de *Early Stopping* baseadas no erro da validação para mitigar o *overfitting*.
-  * Acoplamento mandatório do loop de treino com o servidor local do **MLflow** para salvar hiperparâmetros (taxa de aprendizado, tamanho do lote, dropout) e curvas de perda.
-
-### Estágio IV: `evaluate` (`src/stages/evaluate.py`)
-* **Objetivo:** Homologação do artefato preditivo e comparação de performance.
-* **Estratégia Pós-EDA:**
-  * Avaliação do modelo final contra um baseline estático do Scikit-Learn.
-  * Geração do painel com as 4 métricas obrigatórias de recomendação (ex: *Precision@K*, *Recall@K*, *NDCG@K* e *F1-Score*).
-  * Registro definitivo do modelo aprovado no **MLflow Model Registry** sob a tag `Staging` ou `Production`.
+- ingestão e versionamento de dados;
+- pipeline de pré-processamento e feature engineering;
+- treinamento e avaliação de modelos;
+- rastreamento de experimentos;
+- deploy de inferência via API;
+- testes automatizados;
+- containerização e automação de CI/CD.
 
 ---
 
-## 🚀 3. Próximos Passos Imediatos
+## 3. Diretrizes Principais
 
-1. Criar e versionar o documento `docs/action_plan.md` na branch atual de desenvolvimento.
-2. Criar a estrutura física de arquivos em `src/stages/` (`__init__.py`, `preprocess.py`, `feature_eng.py`, `train.py`, `evaluate.py`).
-3. Codificar as funções estruturadas de filtragem dentro de `preprocess.py` utilizando o gerenciador `uv`.
+O plano deve seguir os seguintes princípios:
 
-## 📐 4. Requisitos de Avaliação e Governança (Atendimento ao Regulamento)
+- Reprodutibilidade: todos os passos devem ser executáveis de forma consistente.
+- Versionamento: dados, código, parâmetros e modelos devem ser rastreados.
+- Automação: pipelines e validações devem rodar sem intervenção manual.
+- Observabilidade: métricas, logs e artefatos devem ser acompanhados.
+- Qualidade: testes, linting e validações devem fazer parte do fluxo.
 
-Para garantir o cumprimento integral dos critérios de avaliação do Tech Challenge, o projeto adota os seguintes padrões:
+---
 
-* **Design Patterns:** Será implementado o padrão *Strategy* no módulo de pré-processamento para isolar as regras de filtragem de dados e *Factory* no módulo de treino para a inicialização da rede MLP.
-* **Validação de Ambiente:** Uso de `Pydantic Settings` para gerenciar o arquivo `.env` e execução obrigatória do script `scripts/validate_env.py` antes do disparo do pipeline.
-* **Containerização Eficiente:** Criação de `Dockerfile` utilizando a estratégia multi-stage (otimizando tamanho de imagem) integrado via `docker-compose.yml` com o servidor do MLflow.
-* **Métricas Mandatórias:** O estágio de avaliação comparará a MLP (PyTorch) contra um baseline do Scikit-Learn utilizando no mínimo 4 métricas (Precision@K, Recall@K, NDCG@K e F1-Score).
-* **Documentação de Modelo:** Geração do `Model Card` detalhando vieses detectados no desbalanceamento do RetailRocket, além do roteiro do vídeo de 5 minutos estruturado estritamente sob o método STAR (Situation, Task, Action, Result).
+## 4. Fases do Plano
+
+### Fase 0 - Fundação do Projeto
+
+Objetivo: estruturar a base do repositório para crescer com qualidade.
+
+Atividades:
+
+- [ ] padronizar a estrutura de diretórios;
+- [ ] definir ambiente de execução com `uv` ou `pip-tools`;
+- [ ] configurar `ruff`, `pytest` e `pre-commit`;
+- [ ] criar documentação inicial (`README`, `docs/`);
+- [ ] definir convenções de código e organização de módulos;
+- [ ] definir contratos de entrada e saída de dados.
+
+Entregáveis:
+
+- projeto com estrutura organizada;
+- ambiente reproduzível;
+- qualidade mínima de código garantida.
+
+---
+
+### Fase 1 - Pipeline de Dados
+
+Objetivo: transformar dados brutos em dados prontos para treinamento.
+
+Atividades:
+
+- [ ] definir schema dos dados brutos;
+- [ ] implementar ingestão e validação inicial;
+- [ ] criar pipeline de limpeza e normalização;
+- [ ] implementar engenharia de features;
+- [ ] separar dados em `raw`, `interim` e `processed`;
+- [ ] versionar datasets com `DVC`;
+- [ ] registrar metadados e qualidade dos dados.
+
+Entregáveis:
+
+- dataset processado e versionado;
+- pipeline de dados reproduzível;
+- artefatos intermediários rastreados.
+
+---
+
+### Fase 2 - Treinamento e Experimentação
+
+Objetivo: treinar modelos de forma controlada e rastreável.
+
+Atividades:
+
+- [ ] implementar script de treinamento;
+- [ ] externalizar hiperparâmetros em `params.yaml`;
+- [ ] configurar seeds para reprodutibilidade;
+- [ ] salvar modelo e artefatos em `models/`;
+- [ ] registrar métricas e experimentos com `MLflow`;
+- [ ] comparar versões de modelo;
+- [ ] definir critérios de aceitação para o modelo.
+
+Entregáveis:
+
+- modelo treinado com artefatos persistidos;
+- experimentos registrados;
+- métricas comparáveis entre execuções.
+
+---
+
+### Fase 3 - Inferência e API
+
+Objetivo: disponibilizar recomendações por meio de uma API.
+
+Atividades:
+
+- [ ] implementar endpoint de saúde (`/health`);
+- [ ] implementar endpoint de predição (`/predict`);
+- [ ] carregar o modelo treinado de forma robusta;
+- [ ] validar entradas com `Pydantic`;
+- [ ] retornar respostas estruturadas em JSON;
+- [ ] adicionar testes de API;
+- [ ] garantir compatibilidade com o modelo salvo.
+
+Entregáveis:
+
+- API funcional;
+- inferência pronta para uso;
+- cobertura básica de testes.
+
+---
+
+### Fase 4 - Containerização e Automação
+
+Objetivo: tornar o projeto executável em diferentes ambientes com automação.
+
+Atividades:
+
+- [ ] criar `Dockerfile`;
+- [ ] configurar `docker-compose.yml`;
+- [ ] criar workflow de CI com `pytest`, `ruff` e build;
+- [ ] validar pipeline completo em container;
+- [ ] automatizar execução de testes em PRs;
+- [ ] preparar ambiente para deploy futuro.
+
+Entregáveis:
+
+- aplicação rodando em container;
+- pipeline de validação automatizado;
+- processo de integração contínua funcional.
+
+---
+
+### Fase 5 - Observabilidade e Evolução
+
+Objetivo: preparar o projeto para operação e evolução contínua.
+
+Atividades:
+
+- [ ] implementar logs estruturados;
+- [ ] monitorar latência e erros da API;
+- [ ] registrar métricas de uso e performance;
+- [ ] planejar retraining periódico;
+- [ ] avaliar drift de dados e de desempenho;
+- [ ] evoluir para batch inference ou serviço mais robusto no futuro.
+
+Entregáveis:
+
+- sistema com observabilidade mínima;
+- base para monitoramento e melhoria contínua.
+
+---
+
+## 5. Priorização Recomendada
+
+A ordem ideal de execução é:
+
+1. estrutura do projeto e qualidade de código;
+2. pipeline de dados e versionamento;
+3. treinamento e experimentos;
+4. API de inferência;
+5. containerização e CI/CD;
+6. observabilidade e evolução.
+
+---
+
+## 6. Critérios de Conclusão de Cada Fase
+
+### Fase 0
+- projeto organizado;
+- ambiente reproduzível;
+- testes e lint configurados.
+
+### Fase 1
+- dados limpos e processados;
+- dados versionados;
+- pipeline executável.
+
+### Fase 2
+- modelo treinado;
+- métricas registradas;
+- experimentos rastreados.
+
+### Fase 3
+- API disponível;
+- predição funcionando;
+- testes automatizados.
+
+### Fase 4
+- projeto rodando em container;
+- CI funcionando.
+
+### Fase 5
+- logs e métricas observáveis;
+- estratégia de evolução definida.
+
+---
+
+## 7. Riscos e Mitigações
+
+- Dados inconsistentes:
+  - mitigar com validação de schema e testes de qualidade.
+
+- Ambientes diferentes:
+  - mitigar com `uv`/`lockfile` e containerização.
+
+- Modelo pouco confiável:
+  - mitigar com avaliação rigorosa e experimentos comparativos.
+
+- Deploy manual e frágil:
+  - mitigar com CI/CD e automação.
+
+---
+
+## 8. Próximos Passos Imediatos
+
+1. consolidar estrutura do projeto;
+2. implementar pipeline de dados;
+3. criar treino e avaliação;
+4. expor inferência via API;
+5. adicionar testes e containerização.
+
+---
+
+## 9. Resumo
+
+Este plano transforma o projeto em uma solução de MLOps mais madura, com foco em:
+
+- dados versionados;
+- pipeline automatizado;
+- treinamento reproduzível;
+- rastreamento de experimentos;
+- serving via API;
+- qualidade e automação contínua.
+
+Se quiser, eu também posso te entregar uma versão deste `action_plan.md` em formato de roadmap com cronograma semanal ou por sprint.<!-- filepath: c:\dev\Hands-ON - Projetos - TechChallenge\TechChallenge\Fase 2\e-commerce-ml-ops\action_plan.md -->
+
+# Action Plan - E-commerce ML Ops
+
+## 1. Objetivo
+
+Construir um ciclo completo de Machine Learning Ops para um sistema de recomendação de produtos, cobrindo desde a preparação dos dados até o deploy da inferência em API, com foco em reprodutibilidade, rastreabilidade e qualidade.
+
+---
+
+## 2. Escopo do Projeto
+
+O projeto deve evoluir para um fluxo completo de ML, incluindo:
+
+- ingestão e versionamento de dados;
+- pipeline de pré-processamento e feature engineering;
+- treinamento e avaliação de modelos;
+- rastreamento de experimentos;
+- deploy de inferência via API;
+- testes automatizados;
+- containerização e automação de CI/CD.
+
+---
+
+## 3. Diretrizes Principais
+
+O plano deve seguir os seguintes princípios:
+
+- Reprodutibilidade: todos os passos devem ser executáveis de forma consistente.
+- Versionamento: dados, código, parâmetros e modelos devem ser rastreados.
+- Automação: pipelines e validações devem rodar sem intervenção manual.
+- Observabilidade: métricas, logs e artefatos devem ser acompanhados.
+- Qualidade: testes, linting e validações devem fazer parte do fluxo.
+
+---
+
+## 4. Fases do Plano
+
+### Fase 0 - Fundação do Projeto
+
+Objetivo: estruturar a base do repositório para crescer com qualidade.
+
+Atividades:
+
+- [ ] padronizar a estrutura de diretórios;
+- [ ] definir ambiente de execução com `uv` ou `pip-tools`;
+- [ ] configurar `ruff`, `pytest` e `pre-commit`;
+- [ ] criar documentação inicial (`README`, `docs/`);
+- [ ] definir convenções de código e organização de módulos;
+- [ ] definir contratos de entrada e saída de dados.
+
+Entregáveis:
+
+- projeto com estrutura organizada;
+- ambiente reproduzível;
+- qualidade mínima de código garantida.
+
+---
+
+### Fase 1 - Pipeline de Dados
+
+Objetivo: transformar dados brutos em dados prontos para treinamento.
+
+Atividades:
+
+- [ ] definir schema dos dados brutos;
+- [ ] implementar ingestão e validação inicial;
+- [ ] criar pipeline de limpeza e normalização;
+- [ ] implementar engenharia de features;
+- [ ] separar dados em `raw`, `interim` e `processed`;
+- [ ] versionar datasets com `DVC`;
+- [ ] registrar metadados e qualidade dos dados.
+
+Entregáveis:
+
+- dataset processado e versionado;
+- pipeline de dados reproduzível;
+- artefatos intermediários rastreados.
+
+---
+
+### Fase 2 - Treinamento e Experimentação
+
+Objetivo: treinar modelos de forma controlada e rastreável.
+
+Atividades:
+
+- [ ] implementar script de treinamento;
+- [ ] externalizar hiperparâmetros em `params.yaml`;
+- [ ] configurar seeds para reprodutibilidade;
+- [ ] salvar modelo e artefatos em `models/`;
+- [ ] registrar métricas e experimentos com `MLflow`;
+- [ ] comparar versões de modelo;
+- [ ] definir critérios de aceitação para o modelo.
+
+Entregáveis:
+
+- modelo treinado com artefatos persistidos;
+- experimentos registrados;
+- métricas comparáveis entre execuções.
+
+---
+
+### Fase 3 - Inferência e API
+
+Objetivo: disponibilizar recomendações por meio de uma API.
+
+Atividades:
+
+- [ ] implementar endpoint de saúde (`/health`);
+- [ ] implementar endpoint de predição (`/predict`);
+- [ ] carregar o modelo treinado de forma robusta;
+- [ ] validar entradas com `Pydantic`;
+- [ ] retornar respostas estruturadas em JSON;
+- [ ] adicionar testes de API;
+- [ ] garantir compatibilidade com o modelo salvo.
+
+Entregáveis:
+
+- API funcional;
+- inferência pronta para uso;
+- cobertura básica de testes.
+
+---
+
+### Fase 4 - Containerização e Automação
+
+Objetivo: tornar o projeto executável em diferentes ambientes com automação.
+
+Atividades:
+
+- [ ] criar `Dockerfile`;
+- [ ] configurar `docker-compose.yml`;
+- [ ] criar workflow de CI com `pytest`, `ruff` e build;
+- [ ] validar pipeline completo em container;
+- [ ] automatizar execução de testes em PRs;
+- [ ] preparar ambiente para deploy futuro.
+
+Entregáveis:
+
+- aplicação rodando em container;
+- pipeline de validação automatizado;
+- processo de integração contínua funcional.
+
+---
+
+### Fase 5 - Observabilidade e Evolução
+
+Objetivo: preparar o projeto para operação e evolução contínua.
+
+Atividades:
+
+- [ ] implementar logs estruturados;
+- [ ] monitorar latência e erros da API;
+- [ ] registrar métricas de uso e performance;
+- [ ] planejar retraining periódico;
+- [ ] avaliar drift de dados e de desempenho;
+- [ ] evoluir para batch inference ou serviço mais robusto no futuro.
+
+Entregáveis:
+
+- sistema com observabilidade mínima;
+- base para monitoramento e melhoria contínua.
+
+---
+
+## 5. Priorização Recomendada
+
+A ordem ideal de execução é:
+
+1. estrutura do projeto e qualidade de código;
+2. pipeline de dados e versionamento;
+3. treinamento e experimentos;
+4. API de inferência;
+5. containerização e CI/CD;
+6. observabilidade e evolução.
+
+---
+
+## 6. Critérios de Conclusão de Cada Fase
+
+### Fase 0
+- projeto organizado;
+- ambiente reproduzível;
+- testes e lint configurados.
+
+### Fase 1
+- dados limpos e processados;
+- dados versionados;
+- pipeline executável.
+
+### Fase 2
+- modelo treinado;
+- métricas registradas;
+- experimentos rastreados.
+
+### Fase 3
+- API disponível;
+- predição funcionando;
+- testes automatizados.
+
+### Fase 4
+- projeto rodando em container;
+- CI funcionando.
+
+### Fase 5
+- logs e métricas observáveis;
+- estratégia de evolução definida.
+
+---
+
+## 7. Riscos e Mitigações
+
+- Dados inconsistentes:
+  - mitigar com validação de schema e testes de qualidade.
+
+- Ambientes diferentes:
+  - mitigar com `uv`/`lockfile` e containerização.
+
+- Modelo pouco confiável:
+  - mitigar com avaliação rigorosa e experimentos comparativos.
+
+- Deploy manual e frágil:
+  - mitigar com CI/CD e automação.
+
+---
+
+## 8. Próximos Passos Imediatos
+
+1. consolidar estrutura do projeto;
+2. implementar pipeline de dados;
+3. criar treino e avaliação;
+4. expor inferência via API;
+5. adicionar testes e containerização.
+
+---
+
+## 9. Resumo
+
+Este plano transforma o projeto em uma solução de MLOps mais madura, com foco em:
+
+- dados versionados;
+- pipeline automatizado;
+- treinamento reproduzível;
+- rastreamento de experimentos;
+- serving via API;
+- qualidade e automação contínua.
