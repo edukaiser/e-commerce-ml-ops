@@ -197,7 +197,7 @@ a predição é realizada;
 o resultado é retornado em formato JSON.
 
 ## 8. Estrutura de Diretórios
-
+```text
 e-commerce-ml-ops/
 ├── .dvc/                     # Configuração do Data Version Control
 ├── .github/                  # Workflows de CI/CD (quando aplicável)
@@ -230,6 +230,7 @@ e-commerce-ml-ops/
 ├── params.yaml               # Parâmetros do treinamento
 ├── pyproject.toml            # Configuração do projeto
 └── uv.lock                   # Lock de dependências
+```
 
 ## 9. Tecnologias Utilizadas
 O projeto utiliza um stack moderno para apoiar o ciclo de vida completo de ML:
