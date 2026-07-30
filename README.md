@@ -1,3 +1,5 @@
+![Descrição da imagem](docs/img/mlops_banner.png)
+
 # 🛒 E-commerce ML Ops
 
 Projeto de Machine Learning Ops para construção de um sistema de recomendação para e-commerce, com foco em reprodutibilidade, rastreabilidade, experimentação e preparação para deploy de inferência.
@@ -13,6 +15,7 @@ Este repositório organiza um fluxo completo de desenvolvimento de modelos de re
 ---
 
 👥 Integrante: Eduardo Marafigo Kaiser | RM370237
+
 ---
 
 ## 🏁 Objetivos
