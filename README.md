@@ -12,10 +12,7 @@ Este repositório organiza um fluxo completo de desenvolvimento de modelos de re
 
 ---
 
-👥 Integrante:
-        Nome	            RM	
-Eduardo Marafigo Kaiser | RM370237
-
+👥 Integrante: Eduardo Marafigo Kaiser | RM370237
 ---
 
 ## 🏁 Objetivos
