@@ -67,7 +67,7 @@ O projeto é organizado em camadas com foco em MLOps:
 ---
 
 ## 📂 Estrutura do Repositório
-
+```text
 e-commerce-ml-ops/
 ├── data/
 │   ├── raw/
@@ -91,6 +91,7 @@ e-commerce-ml-ops/
 ├── Dockerfile
 ├── docker-compose.yml
 └── README.md
+```
 
 ## 📦 Pré-requisitos
 Antes de começar, certifique-se de ter instalado:
