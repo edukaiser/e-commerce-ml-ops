@@ -4,7 +4,7 @@
 
 Projeto de Machine Learning Ops para construção de um sistema de recomendação para e-commerce, com foco em reprodutibilidade, rastreabilidade, experimentação e preparação para deploy de inferência.
 
-Resumo rápido (Vídeo Explicativo):  [Vídeo Resumo do Sistema de Recomendação.](https://drive.google.com/drive/folders/16Ef16QepXDB89m31CCtISMM0HObBRsBj?hl=pt-br)
+Resumo rápido (Vídeo Explicativo):  [Vídeo Resumo do Sistema de Recomendação.](https://drive.google.com/file/d/1PXRWodFOVnCTjV2K_-473FIRNx82r2X_/view?usp=drive_link)
 
 ---
 
